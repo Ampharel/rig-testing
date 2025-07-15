@@ -9,9 +9,7 @@
       margin: 30px;
       background: #f8f8f8;
     }
-    h1 {
-      margin-bottom: 5px;
-    }
+    h1 { margin-bottom: 5px; }
     .rubies {
       font-size: 20px;
       font-weight: bold;
@@ -70,6 +68,14 @@
   <script>
     let rubies = 0;
 
+    const MINE_CYCLE_COSTS = [0.5, 2, 5];
+    let nextIncrement = 3;
+    for (let i = 3; i < 15; i++) {
+      const last = MINE_CYCLE_COSTS[MINE_CYCLE_COSTS.length - 1];
+      MINE_CYCLE_COSTS.push(last + nextIncrement);
+      nextIncrement++;
+    }
+
     const BUILDINGS = [
       { name: 'Mine', interval: 5, baseOutput: 20, baseCost: 10, startLevel: 1 },
       { name: 'Mage', interval: 60, baseOutput: 180, baseCost: 100, startLevel: 0 },
@@ -77,7 +83,7 @@
       { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000, startLevel: 0 }
     ];
 
-    const buildings = BUILDINGS.map(b => ({
+    const buildings = BUILDINGS.map((b, i) => ({
       ...b,
       level: b.startLevel,
       lastProduction: Date.now(),
@@ -89,30 +95,27 @@
     }
 
     function getUpgradeCost(b) {
-      return b.level > 0
-        ? Math.floor(b.baseCost * Math.pow(1.5, b.level - 1))
-        : b.baseCost;
+      if (b.name === "Mine") {
+        const level = b.level;
+        if (level >= 15) return Infinity;
+        const cycleCost = MINE_CYCLE_COSTS[level - 1]; // level 1 → index 0
+        return Math.round(cycleCost * b.baseOutput);
+      } else {
+        return b.level > 0
+          ? Math.floor(b.baseCost * Math.pow(1.5, b.level - 1))
+          : b.baseCost;
+      }
     }
 
     function createTimerSVG(percent, timeLeft) {
       const radius = 20;
       const circumference = 2 * Math.PI * radius;
       const offset = circumference * (1 - percent / 100);
-
       return `
         <svg width="50" height="50">
-          <circle
-            cx="25" cy="25" r="${radius}"
-            stroke="#ccc" stroke-width="5"
-            fill="none"
-          />
-          <circle
-            cx="25" cy="25" r="${radius}"
-            stroke="#00cc66" stroke-width="5"
-            fill="none"
-            stroke-dasharray="${circumference}"
-            stroke-dashoffset="${offset}"
-          />
+          <circle cx="25" cy="25" r="${radius}" stroke="#ccc" stroke-width="5" fill="none"/>
+          <circle cx="25" cy="25" r="${radius}" stroke="#00cc66" stroke-width="5" fill="none"
+            stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
         </svg>
         <div class="timer-text">${Math.ceil(timeLeft)}s</div>
       `;
@@ -122,7 +125,6 @@
       document.getElementById('rubies').textContent = Math.floor(rubies);
       const container = document.getElementById('buildings');
       container.innerHTML = '';
-
       const now = Date.now();
 
       buildings.forEach((b, index) => {
