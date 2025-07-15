@@ -24,11 +24,30 @@
       margin-bottom: 15px;
       border-radius: 5px;
       position: relative;
+      display: flex;
+      align-items: center;
+      gap: 15px;
     }
     button {
       margin-top: 10px;
       margin-right: 5px;
       padding: 6px 12px;
+    }
+    .timer-container {
+      position: relative;
+      width: 50px;
+      height: 50px;
+    }
+    svg {
+      transform: rotate(-90deg);
+    }
+    .timer-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: bold;
     }
     .floating-ruby {
       position: absolute;
@@ -75,10 +94,36 @@
         : b.baseCost;
     }
 
+    function createTimerSVG(percent, timeLeft) {
+      const radius = 20;
+      const circumference = 2 * Math.PI * radius;
+      const offset = circumference * (1 - percent / 100);
+
+      return `
+        <svg width="50" height="50">
+          <circle
+            cx="25" cy="25" r="${radius}"
+            stroke="#ccc" stroke-width="5"
+            fill="none"
+          />
+          <circle
+            cx="25" cy="25" r="${radius}"
+            stroke="#00cc66" stroke-width="5"
+            fill="none"
+            stroke-dasharray="${circumference}"
+            stroke-dashoffset="${offset}"
+          />
+        </svg>
+        <div class="timer-text">${Math.ceil(timeLeft)}s</div>
+      `;
+    }
+
     function render() {
       document.getElementById('rubies').textContent = Math.floor(rubies);
       const container = document.getElementById('buildings');
       container.innerHTML = '';
+
+      const now = Date.now();
 
       buildings.forEach((b, index) => {
         const el = document.createElement('div');
@@ -88,13 +133,25 @@
         const canUpgrade = rubies >= upgradeCost && b.level < 15;
         const outputReady = b.hasOutputReady && b.level > 0;
 
+        const intervalMs = b.interval * 1000;
+        const timePassed = now - b.lastProduction;
+        const percent = Math.min((timePassed / intervalMs) * 100, 100);
+        const timeLeft = (intervalMs - timePassed) / 1000;
+
+        const timerHTML = (b.level > 0 && !b.hasOutputReady)
+          ? `<div class="timer-container">${createTimerSVG(percent, timeLeft)}</div>`
+          : `<div class="timer-container"></div>`;
+
         el.innerHTML = `
-          <strong>${b.name}</strong><br>
-          Level: ${b.level}<br>
-          Output: ${getOutputPerCycle(b)} rubies every ${b.interval}s<br>
-          Upgrade Cost: ${upgradeCost} rubies<br>
-          <button ${!canUpgrade ? 'disabled' : ''} onclick="upgrade(${index})">Upgrade</button>
-          <button ${!outputReady ? 'disabled' : ''} onclick="collect(${index})">Collect</button>
+          ${timerHTML}
+          <div>
+            <strong>${b.name}</strong><br>
+            Level: ${b.level}<br>
+            Output: ${getOutputPerCycle(b)} rubies every ${b.interval}s<br>
+            Upgrade Cost: ${upgradeCost} rubies<br>
+            <button ${!canUpgrade ? 'disabled' : ''} onclick="upgrade(${index})">Upgrade</button>
+            <button ${!outputReady ? 'disabled' : ''} onclick="collect(${index})">Collect</button>
+          </div>
         `;
 
         container.appendChild(el);
@@ -107,7 +164,7 @@
       if (rubies >= cost && b.level < 15) {
         rubies -= cost;
         b.level += 1;
-        b.lastProduction = Date.now(); // reset timer on upgrade
+        b.lastProduction = Date.now();
         b.hasOutputReady = false;
         render();
       }
@@ -148,7 +205,7 @@
       render();
     }
 
-    setInterval(gameLoop, 250); // smooth updates
+    setInterval(gameLoop, 250);
     render();
   </script>
 </body>
