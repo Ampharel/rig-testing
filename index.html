@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ruby Incremental</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8f8f8;
+    }
+    h1 {
+      margin-bottom: 5px;
+    }
+    .rubies {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .building {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 6px 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>💎 Ruby Incremental</h1>
+  <div class="rubies">Rubies: <span id="rubies">0</span></div>
+  <div id="buildings"></div>
+
+  <script>
+    const TIME_SCALE = 1 / 60; // 1 minute = 1 second
+    let rubies = 0;
+
+    const BUILDINGS = [
+      { name: 'Mine', interval: 5, baseOutput: 20, baseCost: 10 },
+      { name: 'Mage', interval: 60, baseOutput: 180, baseCost: 100 },
+      { name: 'Alchemist', interval: 240, baseOutput: 600, baseCost: 500 },
+      { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000 }
+    ];
+
+    const buildings = BUILDINGS.map(b => ({
+      ...b,
+      level: 1,
+      lastProduction: Date.now()
+    }));
+
+    function getOutputPerCycle(b) {
+      return b.baseOutput * b.level;
+    }
+
+    function getUpgradeCost(b) {
+      return Math.floor(b.baseCost * Math.pow(1.5, b.level - 1));
+    }
+
+    function render() {
+      document.getElementById('rubies').textContent = Math.floor(rubies);
+      const container = document.getElementById('buildings');
+      container.innerHTML = '';
+
+      buildings.forEach((b, index) => {
+        const el = document.createElement('div');
+        el.className = 'building';
+
+        const upgradeCost = getUpgradeCost(b);
+        const canUpgrade = rubies >= upgradeCost && b.level < 15;
+
+        el.innerHTML = `
+          <strong>${b.name}</strong><br>
+          Level: ${b.level}<br>
+          Output: ${getOutputPerCycle(b)} rubies every ${(b.interval * TIME_SCALE).toFixed(2)}s<br>
+          Upgrade Cost: ${upgradeCost} rubies<br>
+          <button ${!canUpgrade ? 'disabled' : ''} onclick="upgrade(${index})">Upgrade</button>
+        `;
+
+        container.appendChild(el);
+      });
+    }
+
+    function upgrade(index) {
+      const b = buildings[index];
+      const cost = getUpgradeCost(b);
+      if (rubies >= cost && b.level < 15) {
+        rubies -= cost;
+        b.level += 1;
+        render();
+      }
+    }
+
+    function gameLoop() {
+      const now = Date.now();
+      buildings.forEach(b => {
+        const intervalMs = b.interval * 1000 * TIME_SCALE;
+        const timePassed = now - b.lastProduction;
+        const cycles = Math.floor(timePassed / intervalMs);
+        if (cycles > 0) {
+          rubies += getOutputPerCycle(b) * cycles;
+          b.lastProduction += cycles * intervalMs;
+        }
+      });
+      render();
+    }
+
+    setInterval(gameLoop, 200); // Update every 200ms
+    render();
+  </script>
+</body>
+</html>
