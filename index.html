@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="="en">
 <head>
   <meta charset="UTF-8">
   <title>Ruby Incremental</title>
@@ -9,7 +9,13 @@
       margin: 30px;
       background: #f8f8f8;
     }
-    h1 { margin-bottom: 5px; }
+    h1 {
+      margin-bottom: 5px;
+    }
+    .timer {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
     .rubies {
       font-size: 20px;
       font-weight: bold;
@@ -62,11 +68,13 @@
 </head>
 <body>
   <h1>💎 Ruby Incremental</h1>
+  <div class="timer">⏱️ Play Time: <span id="playTime">00:00:00</span></div>
   <div class="rubies">Rubies: <span id="rubies">0</span></div>
   <div id="buildings"></div>
 
   <script>
     let rubies = 0;
+    let startTime = Date.now();
 
     const MINE_CYCLE_COSTS = [0.5, 2, 5];
     let nextIncrement = 3;
@@ -83,7 +91,7 @@
       { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000, startLevel: 0 }
     ];
 
-    const buildings = BUILDINGS.map((b, i) => ({
+    const buildings = BUILDINGS.map(b => ({
       ...b,
       level: b.startLevel,
       lastProduction: Date.now(),
@@ -98,7 +106,7 @@
       if (b.name === "Mine") {
         const level = b.level;
         if (level >= 15) return Infinity;
-        const cycleCost = MINE_CYCLE_COSTS[level - 1]; // level 1 → index 0
+        const cycleCost = MINE_CYCLE_COSTS[level - 1];
         return Math.round(cycleCost * b.baseOutput);
       } else {
         return b.level > 0
@@ -207,7 +215,16 @@
       render();
     }
 
+    function updatePlayTime() {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+      const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+      const s = String(elapsed % 60).padStart(2, '0');
+      document.getElementById('playTime').textContent = `${h}:${m}:${s}`;
+    }
+
     setInterval(gameLoop, 250);
+    setInterval(updatePlayTime, 1000);
     render();
   </script>
 </body>
