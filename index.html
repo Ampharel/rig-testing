@@ -8,6 +8,7 @@
       font-family: Arial, sans-serif;
       margin: 30px;
       background: #f8f8f8;
+      overflow-x: hidden;
     }
     h1 {
       margin-bottom: 5px;
@@ -23,10 +24,22 @@
       padding: 15px;
       margin-bottom: 15px;
       border-radius: 5px;
+      position: relative;
     }
     button {
       margin-top: 10px;
       padding: 6px 12px;
+    }
+    .floating-ruby {
+      position: absolute;
+      color: green;
+      font-weight: bold;
+      pointer-events: none;
+      animation: floatUp 1s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0px); }
+      100% { opacity: 0; transform: translateY(-40px); }
     }
   </style>
 </head>
@@ -94,21 +107,33 @@
       }
     }
 
+    function spawnRubyGain(text, buildingIndex) {
+      const container = document.getElementsByClassName('building')[buildingIndex];
+      const gain = document.createElement('div');
+      gain.className = 'floating-ruby';
+      gain.textContent = `+${text}`;
+      gain.style.left = Math.random() * 100 + 'px';
+      container.appendChild(gain);
+      setTimeout(() => gain.remove(), 1000);
+    }
+
     function gameLoop() {
       const now = Date.now();
-      buildings.forEach(b => {
+      buildings.forEach((b, i) => {
         const intervalMs = b.interval * 1000 * TIME_SCALE;
         const timePassed = now - b.lastProduction;
         const cycles = Math.floor(timePassed / intervalMs);
         if (cycles > 0) {
-          rubies += getOutputPerCycle(b) * cycles;
+          const earned = getOutputPerCycle(b) * cycles;
+          rubies += earned;
           b.lastProduction += cycles * intervalMs;
+          spawnRubyGain(earned, i);
         }
       });
       render();
     }
 
-    setInterval(gameLoop, 200); // Update every 200ms
+    setInterval(gameLoop, 200); // 5x per second
     render();
   </script>
 </body>
