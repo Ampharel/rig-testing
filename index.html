@@ -8,7 +8,6 @@
       font-family: Arial, sans-serif;
       margin: 30px;
       background: #f8f8f8;
-      overflow-x: hidden;
     }
     h1 {
       margin-bottom: 5px;
@@ -28,6 +27,7 @@
     }
     button {
       margin-top: 10px;
+      margin-right: 5px;
       padding: 6px 12px;
     }
     .floating-ruby {
@@ -49,28 +49,30 @@
   <div id="buildings"></div>
 
   <script>
-    const TIME_SCALE = 1;
     let rubies = 0;
 
     const BUILDINGS = [
-      { name: 'Mine', interval: 5, baseOutput: 20, baseCost: 10 },        // 5 sec
-      { name: 'Mage', interval: 60, baseOutput: 180, baseCost: 100 },     // 60 sec
-      { name: 'Alchemist', interval: 240, baseOutput: 600, baseCost: 500 }, // 240 sec
-      { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000 } // 600 sec
+      { name: 'Mine', interval: 5, baseOutput: 20, baseCost: 10, startLevel: 1 },
+      { name: 'Mage', interval: 60, baseOutput: 180, baseCost: 100, startLevel: 0 },
+      { name: 'Alchemist', interval: 240, baseOutput: 600, baseCost: 500, startLevel: 0 },
+      { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000, startLevel: 0 }
     ];
 
     const buildings = BUILDINGS.map(b => ({
       ...b,
-      level: 1,
-      lastProduction: Date.now()
+      level: b.startLevel,
+      lastProduction: Date.now(),
+      hasOutputReady: false
     }));
 
     function getOutputPerCycle(b) {
-      return b.baseOutput * b.level;
+      return b.level > 0 ? b.baseOutput * b.level : 0;
     }
 
     function getUpgradeCost(b) {
-      return Math.floor(b.baseCost * Math.pow(1.5, b.level - 1));
+      return b.level > 0
+        ? Math.floor(b.baseCost * Math.pow(1.5, b.level - 1))
+        : b.baseCost;
     }
 
     function render() {
@@ -84,13 +86,15 @@
 
         const upgradeCost = getUpgradeCost(b);
         const canUpgrade = rubies >= upgradeCost && b.level < 15;
+        const outputReady = b.hasOutputReady && b.level > 0;
 
         el.innerHTML = `
           <strong>${b.name}</strong><br>
           Level: ${b.level}<br>
-          Output: ${getOutputPerCycle(b)} rubies every ${(b.interval * TIME_SCALE).toFixed(2)}s<br>
+          Output: ${getOutputPerCycle(b)} rubies every ${b.interval}s<br>
           Upgrade Cost: ${upgradeCost} rubies<br>
           <button ${!canUpgrade ? 'disabled' : ''} onclick="upgrade(${index})">Upgrade</button>
+          <button ${!outputReady ? 'disabled' : ''} onclick="collect(${index})">Collect</button>
         `;
 
         container.appendChild(el);
@@ -103,37 +107,48 @@
       if (rubies >= cost && b.level < 15) {
         rubies -= cost;
         b.level += 1;
+        b.lastProduction = Date.now(); // reset timer on upgrade
+        b.hasOutputReady = false;
         render();
       }
     }
 
-    function spawnRubyGain(text, buildingIndex) {
-      const container = document.getElementsByClassName('building')[buildingIndex];
+    function collect(index) {
+      const b = buildings[index];
+      if (b.hasOutputReady && b.level > 0) {
+        const earned = getOutputPerCycle(b);
+        rubies += earned;
+        b.lastProduction = Date.now();
+        b.hasOutputReady = false;
+        spawnRubyGain(earned, index);
+        render();
+      }
+    }
+
+    function spawnRubyGain(amount, index) {
+      const container = document.getElementsByClassName('building')[index];
       const gain = document.createElement('div');
       gain.className = 'floating-ruby';
-      gain.textContent = `+${text}`;
-      gain.style.left = Math.random() * 100 + 'px';
+      gain.textContent = `+${amount}`;
+      gain.style.left = Math.random() * 80 + 'px';
       container.appendChild(gain);
       setTimeout(() => gain.remove(), 1000);
     }
 
     function gameLoop() {
       const now = Date.now();
-      buildings.forEach((b, i) => {
-        const intervalMs = b.interval * 1000 * TIME_SCALE;
-        const timePassed = now - b.lastProduction;
-        const cycles = Math.floor(timePassed / intervalMs);
-        if (cycles > 0) {
-          const earned = getOutputPerCycle(b) * cycles;
-          rubies += earned;
-          b.lastProduction += cycles * intervalMs;
-          spawnRubyGain(earned, i);
+      buildings.forEach(b => {
+        if (b.level > 0 && !b.hasOutputReady) {
+          const intervalMs = b.interval * 1000;
+          if (now - b.lastProduction >= intervalMs) {
+            b.hasOutputReady = true;
+          }
         }
       });
       render();
     }
 
-    setInterval(gameLoop, 200); // 5x per second
+    setInterval(gameLoop, 250); // smooth updates
     render();
   </script>
 </body>
