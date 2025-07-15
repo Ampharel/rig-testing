@@ -49,14 +49,14 @@
   <div id="buildings"></div>
 
   <script>
-    const TIME_SCALE = 1 / 60; // 1 minute = 1 second
+    const TIME_SCALE = 1;
     let rubies = 0;
 
     const BUILDINGS = [
-      { name: 'Mine', interval: 5, baseOutput: 20, baseCost: 10 },
-      { name: 'Mage', interval: 60, baseOutput: 180, baseCost: 100 },
-      { name: 'Alchemist', interval: 240, baseOutput: 600, baseCost: 500 },
-      { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000 }
+      { name: 'Mine', interval: 5, baseOutput: 20, baseCost: 10 },        // 5 sec
+      { name: 'Mage', interval: 60, baseOutput: 180, baseCost: 100 },     // 60 sec
+      { name: 'Alchemist', interval: 240, baseOutput: 600, baseCost: 500 }, // 240 sec
+      { name: 'Blacksmith', interval: 600, baseOutput: 1500, baseCost: 2000 } // 600 sec
     ];
 
     const buildings = BUILDINGS.map(b => ({
