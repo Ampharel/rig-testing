@@ -102,18 +102,23 @@
       return b.level > 0 ? b.baseOutput * b.level : 0;
     }
 
-    function getUpgradeCost(b) {
-      if (b.name === "Mine") {
+      const UPGRADE_CYCLE_COSTS = {
+        "Mine":    [0.5, 2, 5, 8, 12, 17, 23, 30, 38, 47, 57, 68, 80, 93],
+        "Mage":    [2, 5, 9, 14, 20, 27, 35, 44, 54, 65, 77, 90, 104, 119],
+        "Alchemist": [5, 10, 18, 28, 40, 54, 70, 88, 108, 130, 154, 180, 208, 238],
+        "Blacksmith": [10, 20, 35, 55, 80, 110, 145, 185, 230, 280, 335, 395, 460, 530]
+      };
+      
+      function getUpgradeCost(b) {
         const level = b.level;
         if (level >= 15) return Infinity;
-        const cycleCost = MINE_CYCLE_COSTS[level - 1];
-        return Math.round(cycleCost * b.baseOutput);
-      } else {
-        return b.level > 0
-          ? Math.floor(b.baseCost * Math.pow(1.5, b.level - 1))
-          : b.baseCost;
+      
+        const cycleCosts = UPGRADE_CYCLE_COSTS[b.name];
+        if (!cycleCosts) return Infinity;
+      
+        const cycles = cycleCosts[level - 1]; // level 1 → index 0
+        return Math.round(cycles * b.baseOutput);
       }
-    }
 
     function createTimerSVG(percent, timeLeft) {
       const radius = 20;
